@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NutriBot AI — Meal Planning</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f0fdf4; --surface: #ffffff; --border: #d1fae5;
+      --text: #1a2e1a; --muted: #4b7c5a; --accent: #16a34a; --accent2: #059669;
+      --radius: 12px; --shadow: 0 2px 16px rgba(22,163,74,0.10);
+    }
+    body { font-family: -apple-system,"Segoe UI",system-ui,sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+    .nav-brand { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; font-weight: 700; color: var(--accent); text-decoration: none; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links a { padding: 8px 16px; border-radius: 8px; text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 500; transition: all .2s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--bg); color: var(--accent); }
+    .nav-links a.active { font-weight: 700; }
+    .page-header { background: linear-gradient(135deg, #059669, #0d9488); color: white; padding: 40px 24px; text-align: center; }
+    .page-header h1 { font-size: 2rem; font-weight: 800; }
+    .page-header p { margin-top: 8px; opacity: 0.9; }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); margin-bottom: 28px; }
+    .section-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; color: var(--text); }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    label { font-size: 0.85rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 6px; }
+    input, select, textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.95rem; background: var(--bg); color: var(--text); transition: border-color .2s; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    .btn { padding: 12px 28px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .result-box { background: #f0fdf4; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 24px; margin-top: 20px; white-space: pre-wrap; font-size: 0.92rem; line-height: 1.8; max-height: 600px; overflow-y: auto; display: none; }
+    .result-box.show { display: block; }
+    .loading { display: none; align-items: center; gap: 10px; color: var(--muted); margin-top: 16px; font-size: 0.9rem; }
+    .loading.show { display: flex; }
+    .spinner { width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* diet style pills */
+    .pill-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .pill { padding: 6px 14px; border-radius: 50px; border: 1.5px solid var(--border); background: var(--bg); cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all .15s; }
+    .pill.selected { background: var(--accent); color: white; border-color: var(--accent); }
+
+    /* cuisine cards */
+    .cuisine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 8px; }
+    .cuisine-card { border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 8px; text-align: center; cursor: pointer; font-size: 0.85rem; transition: all .15s; background: var(--bg); }
+    .cuisine-card:hover { border-color: var(--accent); }
+    .cuisine-card.selected { background: var(--accent); color: white; border-color: var(--accent); }
+    .cuisine-card .cuisine-icon { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+
+    /* day tabs */
+    .day-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+    .day-tab { padding: 6px 16px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); cursor: pointer; font-size: 0.85rem; font-weight: 500; }
+    .day-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+    footer { text-align: center; padding: 24px; color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/"><span>🌿</span> NutriBot AI</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/meal-planning" class="active">Meal Planning</a>
+    <a href="/bmi-calculator">BMI Calculator</a>
+    <a href="/family-profiles">Family Profiles</a>
+    <a href="/ai-agent">AI Agent</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <h1>🍽️ AI Meal Planner</h1>
+  <p>Tell us your preferences and let IBM Granite craft your perfect meal plan.</p>
+</div>
+
+<div class="container">
+  <div class="card">
+    <div class="section-title">Customize Your Meal Plan</div>
+
+    <div class="form-grid" style="margin-bottom:20px;">
+      <div>
+        <label>Meal Type</label>
+        <select id="meal_type">
+          <option value="Full day">Full Day (Breakfast + Lunch + Dinner + Snacks)</option>
+          <option value="Breakfast only">Breakfast Only</option>
+          <option value="Lunch only">Lunch Only</option>
+          <option value="Dinner only">Dinner Only</option>
+          <option value="Snacks only">Healthy Snacks Only</option>
+          <option value="Weekly batch">Weekly Batch Cook Plan</option>
+        </select>
+      </div>
+      <div>
+        <label>Daily Calorie Target</label>
+        <input id="calories" type="number" value="2000" min="800" max="5000" placeholder="e.g. 2000" />
+      </div>
+      <div>
+        <label>Servings (people)</label>
+        <input id="servings" type="number" value="1" min="1" max="20" />
+      </div>
+      <div>
+        <label>Prep Time Available</label>
+        <select id="prep_time">
+          <option>15 minutes</option>
+          <option selected>30 minutes</option>
+          <option>45 minutes</option>
+          <option>1 hour</option>
+          <option>No limit</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label>Dietary Style</label>
+      <div class="pill-group" id="diet-pills">
+        <div class="pill selected" onclick="selectPill(this,'Balanced')">Balanced</div>
+        <div class="pill" onclick="selectPill(this,'Vegetarian')">Vegetarian</div>
+        <div class="pill" onclick="selectPill(this,'Vegan')">Vegan</div>
+        <div class="pill" onclick="selectPill(this,'Keto')">Keto</div>
+        <div class="pill" onclick="selectPill(this,'Mediterranean')">Mediterranean</div>
+        <div class="pill" onclick="selectPill(this,'Low carb')">Low Carb</div>
+        <div class="pill" onclick="selectPill(this,'High protein')">High Protein</div>
+        <div class="pill" onclick="selectPill(this,'Paleo')">Paleo</div>
+        <div class="pill" onclick="selectPill(this,'Gluten-free')">Gluten-Free</div>
+        <div class="pill" onclick="selectPill(this,'Dairy-free')">Dairy-Free</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label>Cuisine Preference</label>
+      <div class="cuisine-grid" id="cuisine-grid">
+        <div class="cuisine-card selected" onclick="selectCuisine(this,'Any')"><span class="cuisine-icon">🌍</span>Any</div>
+        <div class="cuisine-card" onclick="selectCuisine(this,'Indian')"><span class="cuisine-icon">🍛</span>Indian</div>
+        <div class="cuisine-card" onclick="selectCuisine(this,'Mediterranean')"><span class="cuisine-icon">🫒</span>Mediterranean</div>
+        <div class="cuisine-card" onclick="selectCuisine(this,'Asian')"><span class="cuisine-icon">🥢</span>Asian</div>
+        <div class="cuisine-card" onclick="selectCuisine(this,'Mexican')"><span class="cuisine-icon">🌮</span>Mexican</div>
+        <div class="cuisine-card" onclick="selectCuisine(this,'American')"><span class="cuisine-icon">🥙</span>American</div>
+        <div class="cuisine-card" onclick="selectCuisine(this,'Italian')"><span class="cuisine-icon">🍝</span>Italian</div>
+        <div class="cuisine-card" onclick="selectCuisine(this,'Japanese')"><span class="cuisine-icon">🍱</span>Japanese</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label>Special Requirements</label>
+      <input id="special_req" type="text" placeholder="e.g. nut-free, low sodium, high iron, budget-friendly…" value="None" />
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-primary" id="gen-btn" onclick="generateMealPlan()">🍽️ Generate Meal Plan</button>
+    </div>
+
+    <div class="loading" id="loading"><div class="spinner"></div> AI Nutritionist is creating your meal plan…</div>
+    <div class="result-box" id="meal-result"></div>
+  </div>
+</div>
+
+<footer>🌿 NutriBot AI · Powered by IBM WatsonX.ai Granite Models</footer>
+
+<script>
+  let selectedDiet = 'Balanced';
+  let selectedCuisine = 'Any';
+
+  function selectPill(el, val) {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedDiet = val;
+  }
+  function selectCuisine(el, val) {
+    document.querySelectorAll('.cuisine-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedCuisine = val;
+  }
+
+  async function generateMealPlan() {
+    const btn = document.getElementById('gen-btn');
+    const loading = document.getElementById('loading');
+    const result = document.getElementById('meal-result');
+    btn.disabled = true;
+    loading.classList.add('show');
+    result.classList.remove('show');
+
+    try {
+      const res = await fetch('/api/meal-plan', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          meal_type: document.getElementById('meal_type').value,
+          cuisine: selectedCuisine,
+          calories: parseInt(document.getElementById('calories').value),
+          diet_style: selectedDiet,
+          prep_time: document.getElementById('prep_time').value,
+          servings: parseInt(document.getElementById('servings').value),
+          special_req: document.getElementById('special_req').value
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        result.textContent = data.meal_plan;
+        result.classList.add('show');
+      } else {
+        result.textContent = 'Error: ' + (data.detail || 'Unknown error occurred.');
+        result.classList.add('show');
+      }
+    } catch(e) {
+      result.textContent = 'Network error: ' + e.message;
+      result.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      loading.classList.remove('show');
+    }
+  }
+</script>
+</body>
+</html>

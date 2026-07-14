@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NutriBot AI — Nutrition Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f0fdf4;
+      --surface: #ffffff;
+      --border: #d1fae5;
+      --text: #1a2e1a;
+      --muted: #4b7c5a;
+      --accent: #16a34a;
+      --accent2: #059669;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --radius: 12px;
+      --shadow: 0 2px 16px rgba(22,163,74,0.10);
+    }
+    body { font-family: -apple-system,"Segoe UI",system-ui,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: var(--shadow);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; font-weight: 700; color: var(--accent); text-decoration: none; }
+    .nav-brand span.leaf { font-size: 1.6rem; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links a {
+      padding: 8px 16px; border-radius: 8px; text-decoration: none;
+      color: var(--muted); font-size: 0.9rem; font-weight: 500; transition: all .2s;
+    }
+    .nav-links a:hover, .nav-links a.active { background: var(--bg); color: var(--accent); }
+    .nav-links a.active { font-weight: 700; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #16a34a 0%, #059669 50%, #0d9488 100%);
+      color: white;
+      padding: 64px 24px;
+      text-align: center;
+    }
+    .hero h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 16px; }
+    .hero p { font-size: 1.15rem; opacity: 0.92; max-width: 580px; margin: 0 auto 32px; }
+    .hero-btn {
+      display: inline-block; background: white; color: var(--accent);
+      padding: 14px 36px; border-radius: 50px; font-weight: 700; font-size: 1rem;
+      text-decoration: none; margin: 8px; transition: transform .2s;
+    }
+    .hero-btn:hover { transform: translateY(-2px); }
+    .hero-btn.outline { background: transparent; color: white; border: 2px solid white; }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+    .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 24px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+
+    /* ── STATS STRIP ── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 40px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px; text-align: center; box-shadow: var(--shadow);
+    }
+    .stat-card .val { font-size: 2.2rem; font-weight: 800; color: var(--accent); }
+    .stat-card .lbl { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── QUICK PLAN FORM ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 32px; box-shadow: var(--shadow); margin-bottom: 28px;
+    }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    label { font-size: 0.85rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.95rem; background: var(--bg); color: var(--text); transition: border-color .2s;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    .btn {
+      padding: 12px 28px; border: none; border-radius: 8px; font-size: 0.95rem;
+      font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-secondary:hover { background: #bbf7d0; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── RESULT BOX ── */
+    .result-box {
+      background: #f0fdf4; border: 1.5px solid var(--border); border-radius: var(--radius);
+      padding: 24px; margin-top: 20px; white-space: pre-wrap; font-size: 0.92rem;
+      line-height: 1.8; max-height: 520px; overflow-y: auto; display: none;
+    }
+    .result-box.show { display: block; }
+    .loading { display: none; align-items: center; gap: 10px; color: var(--muted); margin-top: 16px; font-size: 0.9rem; }
+    .loading.show { display: flex; }
+    .spinner { width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── FEATURE CARDS ── */
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 40px; }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 28px; box-shadow: var(--shadow); transition: transform .2s; text-decoration: none; color: inherit;
+    }
+    .feature-card:hover { transform: translateY(-4px); }
+    .feature-icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .feature-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; color: var(--accent); }
+    .feature-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── MACRO BAR ── */
+    .macro-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    .macro-chip {
+      padding: 6px 16px; border-radius: 50px; font-size: 0.82rem; font-weight: 600;
+    }
+    .chip-protein { background: #dbeafe; color: #1d4ed8; }
+    .chip-carbs   { background: #fef9c3; color: #a16207; }
+    .chip-fat     { background: #fce7f3; color: #be185d; }
+    .chip-cal     { background: #dcfce7; color: #15803d; }
+
+    footer { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/"><span class="leaf">🌿</span> NutriBot AI</a>
+  <div class="nav-links">
+    <a href="/" class="active">Dashboard</a>
+    <a href="/meal-planning">Meal Planning</a>
+    <a href="/bmi-calculator">BMI Calculator</a>
+    <a href="/family-profiles">Family Profiles</a>
+    <a href="/ai-agent">AI Agent</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>🌿 Your AI Nutrition Coach</h1>
+  <p>Personalized diet plans, meal ideas, and health insights powered by IBM WatsonX.ai Granite models.</p>
+  <a href="#quick-plan" class="hero-btn">Get My Plan</a>
+  <a href="/ai-agent" class="hero-btn outline">Chat with AI</a>
+</div>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card"><div class="val">7-Day</div><div class="lbl">Personalized Meal Plans</div></div>
+    <div class="stat-card"><div class="val">AI</div><div class="lbl">IBM Granite Powered</div></div>
+    <div class="stat-card"><div class="val">∞</div><div class="lbl">Family Profiles</div></div>
+    <div class="stat-card"><div class="val">100%</div><div class="lbl">Science-Based Advice</div></div>
+  </div>
+
+  <!-- Features -->
+  <div class="section-title">🚀 Features</div>
+  <div class="features">
+    <a class="feature-card" href="/meal-planning">
+      <div class="feature-icon">🍽️</div>
+      <h3>Meal Planning</h3>
+      <p>AI-generated custom meal plans based on your caloric goals, cuisine preferences, and dietary style.</p>
+    </a>
+    <a class="feature-card" href="/bmi-calculator">
+      <div class="feature-icon">⚖️</div>
+      <h3>BMI Calculator</h3>
+      <p>Calculate your BMI and receive personalized AI nutrition advice to reach your ideal healthy weight.</p>
+    </a>
+    <a class="feature-card" href="/family-profiles">
+      <div class="feature-icon">👨‍👩‍👧‍👦</div>
+      <h3>Family Profiles</h3>
+      <p>Manage multiple family member profiles and generate unified family nutrition plans for all ages.</p>
+    </a>
+    <a class="feature-card" href="/ai-agent">
+      <div class="feature-icon">🤖</div>
+      <h3>AI Nutritionist</h3>
+      <p>Chat with your personal IBM Granite-powered nutrition AI for instant, expert dietary guidance.</p>
+    </a>
+  </div>
+
+  <!-- Quick Plan Generator -->
+  <div class="section-title" id="quick-plan">📋 Quick Nutrition Plan Generator</div>
+  <div class="card">
+    <div class="form-grid">
+      <div>
+        <label>Your Name</label>
+        <input id="name" type="text" placeholder="e.g. Alex" value="Alex" />
+      </div>
+      <div>
+        <label>Age</label>
+        <input id="age" type="number" min="1" max="120" value="30" />
+      </div>
+      <div>
+        <label>Gender</label>
+        <select id="gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label>Weight (kg)</label>
+        <input id="weight" type="number" min="1" value="70" />
+      </div>
+      <div>
+        <label>Height (cm)</label>
+        <input id="height" type="number" min="1" value="170" />
+      </div>
+      <div>
+        <label>Activity Level</label>
+        <select id="activity">
+          <option value="sedentary">Sedentary (desk job)</option>
+          <option value="light">Light (1-3 days/week)</option>
+          <option value="moderate" selected>Moderate (3-5 days/week)</option>
+          <option value="active">Active (6-7 days/week)</option>
+          <option value="very active">Very Active (athlete)</option>
+        </select>
+      </div>
+      <div>
+        <label>Health Goal</label>
+        <select id="goal">
+          <option>Lose weight</option>
+          <option selected>Maintain healthy weight</option>
+          <option>Gain muscle mass</option>
+          <option>Improve energy levels</option>
+          <option>Manage diabetes</option>
+          <option>Heart health</option>
+        </select>
+      </div>
+      <div>
+        <label>Dietary Restrictions</label>
+        <input id="restrictions" type="text" placeholder="e.g. vegetarian, gluten-free" value="None" />
+      </div>
+      <div>
+        <label>Allergies</label>
+        <input id="allergies" type="text" placeholder="e.g. peanuts, dairy" value="None" />
+      </div>
+      <div>
+        <label>Medical Conditions</label>
+        <input id="medical" type="text" placeholder="e.g. diabetes, hypertension" value="None" />
+      </div>
+    </div>
+    <div style="margin-top:20px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+      <button class="btn btn-primary" onclick="generatePlan()">🌿 Generate My 7-Day Plan</button>
+      <button class="btn btn-secondary" onclick="calculateQuickBMI()">⚖️ Quick BMI Check</button>
+    </div>
+    <div class="loading" id="loading"><div class="spinner"></div> AI is crafting your personalized nutrition plan…</div>
+    <div id="bmi-result" style="margin-top:16px; display:none;"></div>
+    <div class="result-box" id="plan-result"></div>
+  </div>
+
+</div>
+
+<footer>🌿 NutriBot AI · Powered by IBM WatsonX.ai Granite Models · Always consult a healthcare professional</footer>
+
+<script>
+  async function calculateQuickBMI() {
+    const w = parseFloat(document.getElementById('weight').value);
+    const h = parseFloat(document.getElementById('height').value);
+    if (!w || !h) { alert('Please enter valid weight and height.'); return; }
+    const res = await fetch('/api/bmi/calculate-only', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ weight: w, height: h, name: document.getElementById('name').value,
+        age: parseInt(document.getElementById('age').value), gender: document.getElementById('gender').value })
+    });
+    const data = await res.json();
+    const bmi = data.bmi;
+    const tdee = data.tdee;
+    const el = document.getElementById('bmi-result');
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div style="background:${bmi.color}18;border:1.5px solid ${bmi.color}40;border-radius:10px;padding:16px;">
+        <strong>BMI: ${bmi.bmi}</strong> — <span style="color:${bmi.color};font-weight:700;">${bmi.category}</span>
+        <div style="font-size:0.85rem;color:#4b7c5a;margin-top:4px;">${bmi.description}</div>
+        <div style="font-size:0.85rem;color:#4b7c5a;margin-top:6px;">
+          Ideal weight range: <strong>${bmi.ideal_weight_min}–${bmi.ideal_weight_max} kg</strong> |
+          Daily calories (TDEE): <strong>${tdee.tdee} kcal</strong>
+        </div>
+        <div class="macro-row">
+          <span class="macro-chip chip-cal">🔥 ${tdee.tdee} kcal</span>
+          <span class="macro-chip chip-protein">💪 ${tdee.macros.protein_g}g protein</span>
+          <span class="macro-chip chip-carbs">🌾 ${tdee.macros.carbs_g}g carbs</span>
+          <span class="macro-chip chip-fat">🥑 ${tdee.macros.fat_g}g fat</span>
+        </div>
+      </div>`;
+  }
+
+  async function generatePlan() {
+    const btn = document.querySelector('.btn-primary');
+    const loading = document.getElementById('loading');
+    const result = document.getElementById('plan-result');
+    btn.disabled = true;
+    loading.classList.add('show');
+    result.classList.remove('show');
+    try {
+      const res = await fetch('/api/nutrition-plan', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          name: document.getElementById('name').value,
+          age: parseInt(document.getElementById('age').value),
+          gender: document.getElementById('gender').value,
+          weight: parseFloat(document.getElementById('weight').value),
+          height: parseFloat(document.getElementById('height').value),
+          activity_level: document.getElementById('activity').value,
+          goal: document.getElementById('goal').value,
+          restrictions: document.getElementById('restrictions').value,
+          allergies: document.getElementById('allergies').value,
+          medical_conditions: document.getElementById('medical').value,
+          preferences: 'No specific preferences'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        result.textContent = data.plan;
+        result.classList.add('show');
+        document.getElementById('bmi-result').style.display = 'none';
+        const bmi = data.bmi; const tdee = data.tdee;
+        const el = document.getElementById('bmi-result');
+        el.style.display = 'block';
+        el.innerHTML = `<div style="background:${bmi.color}18;border:1.5px solid ${bmi.color}40;border-radius:10px;padding:16px;">
+          <strong>BMI: ${bmi.bmi}</strong> — <span style="color:${bmi.color};font-weight:700;">${bmi.category}</span>
+          <div class="macro-row">
+            <span class="macro-chip chip-cal">🔥 ${tdee.tdee} kcal</span>
+            <span class="macro-chip chip-protein">💪 ${tdee.macros.protein_g}g protein</span>
+            <span class="macro-chip chip-carbs">🌾 ${tdee.macros.carbs_g}g carbs</span>
+            <span class="macro-chip chip-fat">🥑 ${tdee.macros.fat_g}g fat</span>
+          </div></div>`;
+      } else {
+        result.textContent = 'Error: ' + (data.detail || 'Unknown error');
+        result.classList.add('show');
+      }
+    } catch(e) { result.textContent = 'Network error: ' + e.message; result.classList.add('show'); }
+    finally { btn.disabled = false; loading.classList.remove('show'); }
+  }
+</script>
+</body>
+</html>

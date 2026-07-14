@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NutriBot AI — Family Profiles</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f0fdf4; --surface: #ffffff; --border: #d1fae5;
+      --text: #1a2e1a; --muted: #4b7c5a; --accent: #16a34a; --accent2: #059669;
+      --purple: #7c3aed; --radius: 12px; --shadow: 0 2px 16px rgba(22,163,74,0.10);
+    }
+    body { font-family: -apple-system,"Segoe UI",system-ui,sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+    .nav-brand { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; font-weight: 700; color: var(--accent); text-decoration: none; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links a { padding: 8px 16px; border-radius: 8px; text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 500; transition: all .2s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--bg); color: var(--accent); }
+    .nav-links a.active { font-weight: 700; }
+    .page-header { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 40px 24px; text-align: center; }
+    .page-header h1 { font-size: 2rem; font-weight: 800; }
+    .page-header p { margin-top: 8px; opacity: 0.9; }
+    .container { max-width: 1050px; margin: 0 auto; padding: 40px 24px; }
+    .section-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    label { font-size: 0.82rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 5px; }
+    input, select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: var(--bg); color: var(--text); }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    .btn { padding: 10px 22px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-purple { background: var(--purple); color: white; }
+    .btn-purple:hover { background: #6d28d9; }
+    .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #fee2e2; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Member cards grid */
+    .members-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .member-card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); position: relative; }
+    .member-card .avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; font-weight: 800; margin-bottom: 12px; }
+    .member-card .member-name { font-size: 1.05rem; font-weight: 700; }
+    .member-card .member-meta { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+    .bmi-badge { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; margin-top: 8px; }
+    .remove-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; cursor: pointer; font-size: 1.1rem; color: #dc2626; opacity: 0.7; }
+    .remove-btn:hover { opacity: 1; }
+
+    /* Add member form */
+    .add-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .add-form .full-span { grid-column: 1 / -1; }
+
+    .result-box { background: #faf5ff; border: 1.5px solid #e9d5ff; border-radius: var(--radius); padding: 24px; margin-top: 20px; white-space: pre-wrap; font-size: 0.9rem; line-height: 1.8; max-height: 600px; overflow-y: auto; display: none; }
+    .result-box.show { display: block; }
+    .loading { display: none; align-items: center; gap: 10px; color: var(--muted); margin-top: 12px; font-size: 0.9rem; }
+    .loading.show { display: flex; }
+    .spinner { width: 20px; height: 20px; border: 3px solid #e9d5ff; border-top-color: var(--purple); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* BMI summary table */
+    .bmi-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 12px; }
+    .bmi-table th { background: var(--bg); padding: 10px 12px; text-align: left; font-weight: 700; color: var(--muted); border-bottom: 2px solid var(--border); }
+    .bmi-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .bmi-table tr:last-child td { border-bottom: none; }
+    .empty-msg { text-align: center; color: var(--muted); padding: 40px 0; font-size: 0.9rem; }
+
+    footer { text-align: center; padding: 24px; color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/"><span>🌿</span> NutriBot AI</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/meal-planning">Meal Planning</a>
+    <a href="/bmi-calculator">BMI Calculator</a>
+    <a href="/family-profiles" class="active">Family Profiles</a>
+    <a href="/ai-agent">AI Agent</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <h1>👨‍👩‍👧‍👦 Family Profiles</h1>
+  <p>Add your family members and generate a unified nutrition plan that works for everyone.</p>
+</div>
+
+<div class="container">
+
+  <!-- Add Member -->
+  <div class="card">
+    <div class="section-title">➕ Add Family Member</div>
+    <div class="add-form">
+      <div>
+        <label>Name *</label>
+        <input id="f-name" type="text" placeholder="e.g. Mom" />
+      </div>
+      <div>
+        <label>Age *</label>
+        <input id="f-age" type="number" min="1" max="120" placeholder="e.g. 40" />
+      </div>
+      <div>
+        <label>Gender</label>
+        <select id="f-gender">
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label>Weight (kg) *</label>
+        <input id="f-weight" type="number" min="1" step="0.1" placeholder="e.g. 65" />
+      </div>
+      <div>
+        <label>Height (cm) *</label>
+        <input id="f-height" type="number" min="1" step="0.1" placeholder="e.g. 162" />
+      </div>
+      <div>
+        <label>Health Goal</label>
+        <select id="f-goal">
+          <option>General health</option>
+          <option>Lose weight</option>
+          <option>Gain muscle mass</option>
+          <option>Maintain weight</option>
+          <option>Manage diabetes</option>
+          <option>Heart health</option>
+          <option>Grow and develop (child)</option>
+        </select>
+      </div>
+      <div>
+        <label>Dietary Restrictions</label>
+        <input id="f-restrictions" type="text" placeholder="e.g. vegetarian, nut allergy" value="None" />
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addMember()">➕ Add to Family</button>
+  </div>
+
+  <!-- Family Members -->
+  <div class="section-title">👥 Family Members (<span id="count">0</span>)</div>
+  <div class="members-grid" id="members-grid">
+    <div class="empty-msg" id="empty-members" style="grid-column:1/-1;">No family members added yet. Add your first member above!</div>
+  </div>
+
+  <!-- BMI Summary -->
+  <div class="card" id="bmi-summary-card" style="display:none;">
+    <div class="section-title">📊 Family BMI Summary</div>
+    <table class="bmi-table">
+      <thead><tr><th>Name</th><th>Age</th><th>Weight</th><th>Height</th><th>BMI</th><th>Category</th></tr></thead>
+      <tbody id="bmi-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Generate Family Plan -->
+  <div class="card">
+    <div class="section-title">🤖 Generate Family Nutrition Plan</div>
+    <p style="font-size:0.9rem;color:var(--muted);margin-bottom:16px;">
+      Our AI will create a comprehensive nutrition plan that accommodates every family member's age, health goals, and dietary needs.
+    </p>
+    <button class="btn btn-purple" id="gen-family-btn" onclick="generateFamilyPlan()">👨‍👩‍👧‍👦 Generate Family Plan</button>
+    <div class="loading" id="family-loading"><div class="spinner"></div> AI is creating your family nutrition plan…</div>
+    <div class="result-box" id="family-result"></div>
+  </div>
+
+</div>
+
+<footer>🌿 NutriBot AI · Powered by IBM WatsonX.ai Granite Models</footer>
+
+<script>
+  let familyMembers = JSON.parse(localStorage.getItem('nutribot_family') || '[]');
+
+  function saveFamilyData() {
+    localStorage.setItem('nutribot_family', JSON.stringify(familyMembers));
+  }
+
+  function getBMIColor(bmi) {
+    if (bmi < 18.5) return '#3b82f6';
+    if (bmi < 25) return '#22c55e';
+    if (bmi < 30) return '#f59e0b';
+    return '#ef4444';
+  }
+
+  function getBMICategory(bmi) {
+    if (bmi < 18.5) return 'Underweight';
+    if (bmi < 25) return 'Normal';
+    if (bmi < 30) return 'Overweight';
+    return 'Obese';
+  }
+
+  function calcBMILocal(w, h) {
+    const hm = h / 100;
+    return Math.round((w / (hm * hm)) * 10) / 10;
+  }
+
+  function getInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  function renderMembers() {
+    const grid = document.getElementById('members-grid');
+    const empty = document.getElementById('empty-members');
+    const countEl = document.getElementById('count');
+    countEl.textContent = familyMembers.length;
+
+    if (familyMembers.length === 0) {
+      grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1;">No family members added yet. Add your first member above!</div>';
+      document.getElementById('bmi-summary-card').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('bmi-summary-card').style.display = 'block';
+    grid.innerHTML = familyMembers.map((m, i) => {
+      const bmi = calcBMILocal(m.weight, m.height);
+      const color = getBMIColor(bmi);
+      const cat = getBMICategory(bmi);
+      return `<div class="member-card">
+        <button class="remove-btn" onclick="removeMember(${i})" title="Remove">✕</button>
+        <div class="avatar">${getInitials(m.name)}</div>
+        <div class="member-name">${m.name}</div>
+        <div class="member-meta">Age ${m.age} · ${m.gender} · ${m.weight}kg · ${m.height}cm</div>
+        <div class="member-meta">Goal: ${m.goal}</div>
+        ${m.restrictions !== 'None' ? `<div class="member-meta">Restrictions: ${m.restrictions}</div>` : ''}
+        <div class="bmi-badge" style="background:${color}20;color:${color};">BMI ${bmi} — ${cat}</div>
+      </div>`;
+    }).join('');
+
+    // Render BMI table
+    document.getElementById('bmi-tbody').innerHTML = familyMembers.map(m => {
+      const bmi = calcBMILocal(m.weight, m.height);
+      const color = getBMIColor(bmi);
+      const cat = getBMICategory(bmi);
+      return `<tr>
+        <td><strong>${m.name}</strong></td>
+        <td>${m.age}</td>
+        <td>${m.weight} kg</td>
+        <td>${m.height} cm</td>
+        <td><strong style="color:${color}">${bmi}</strong></td>
+        <td><span style="color:${color};font-weight:600;">${cat}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function addMember() {
+    const name = document.getElementById('f-name').value.trim();
+    const age = parseInt(document.getElementById('f-age').value);
+    const gender = document.getElementById('f-gender').value;
+    const weight = parseFloat(document.getElementById('f-weight').value);
+    const height = parseFloat(document.getElementById('f-height').value);
+    const goal = document.getElementById('f-goal').value;
+    const restrictions = document.getElementById('f-restrictions').value.trim() || 'None';
+    if (!name || !age || !weight || !height) { alert('Please fill in all required fields (Name, Age, Weight, Height).'); return; }
+    familyMembers.push({ name, age, gender, weight, height, goal, restrictions });
+    saveFamilyData();
+    renderMembers();
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-age').value = '';
+    document.getElementById('f-weight').value = '';
+    document.getElementById('f-height').value = '';
+    document.getElementById('f-restrictions').value = 'None';
+  }
+
+  function removeMember(i) {
+    if (confirm(`Remove ${familyMembers[i].name} from family profiles?`)) {
+      familyMembers.splice(i, 1);
+      saveFamilyData();
+      renderMembers();
+    }
+  }
+
+  async function generateFamilyPlan() {
+    if (familyMembers.length === 0) { alert('Add at least one family member first.'); return; }
+    const btn = document.getElementById('gen-family-btn');
+    const loading = document.getElementById('family-loading');
+    const result = document.getElementById('family-result');
+    btn.disabled = true;
+    loading.classList.add('show');
+    result.classList.remove('show');
+    try {
+      const res = await fetch('/api/family-plan', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ members: familyMembers })
+      });
+      const data = await res.json();
+      if (data.success) {
+        result.textContent = data.family_plan;
+        result.classList.add('show');
+      } else {
+        result.textContent = 'Error: ' + (data.detail || 'Unknown error');
+        result.classList.add('show');
+      }
+    } catch(e) {
+      result.textContent = 'Network error: ' + e.message;
+      result.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      loading.classList.remove('show');
+    }
+  }
+
+  // Init
+  renderMembers();
+</script>
+</body>
+</html>
